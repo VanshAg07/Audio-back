@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const Audio = require('../models/Audio');
 const auth = require('../middleware/auth');
 const router = express.Router();
@@ -63,6 +64,30 @@ router.get('/my-audio', auth, async (req, res) => {
     } catch (err) {
         console.error('Error fetching audios:', err);
         res.status(500).json({ message: 'Error fetching recordings' });
+    }
+});
+
+router.delete('/my-audio/:id', auth, async (req, res) => {
+    try {
+        const audio = await Audio.findOne({ _id: req.params.id, userId: req.userId });
+
+        if (!audio) {
+            return res.status(404).json({ message: 'Audio not found' });
+        }
+
+        // Delete file from filesystem
+        const filePath = path.join(__dirname, '..', 'uploads', audio.filename);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
+        // Delete from database
+        await Audio.deleteOne({ _id: req.params.id });
+
+        res.json({ message: 'Audio deleted successfully' });
+    } catch (err) {
+        console.error('Error deleting audio:', err);
+        res.status(500).json({ message: 'Error deleting audio' });
     }
 });
 

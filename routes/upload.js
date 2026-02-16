@@ -32,11 +32,15 @@ router.post('/upload-audio', auth, upload.single('audio'), async (req, res) => {
         // Construct the URL to the stored file
         const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
 
+        // Count existing recordings for this user to generate a sequential name
+        const audioCount = await Audio.countDocuments({ userId: req.userId });
+        const sequentialName = `Audio ${audioCount + 1}`;
+
         // Save metadata to database
         const audio = new Audio({
             userId: req.userId,
             filename: req.file.filename,
-            originalname: req.file.originalname,
+            originalname: sequentialName, // Use generated sequence name
             url: fileUrl,
             size: req.file.size,
             mimetype: req.file.mimetype,
